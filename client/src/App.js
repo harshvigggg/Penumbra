@@ -1,48 +1,66 @@
 import { useState, useEffect } from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import './App.css';
 import Auth from './Auth';
-import Dashboard from './Dashboard';
+import Navbar from './components/Navbar';
+import Feed from './pages/Feed';
+import Communities from './pages/Communities';
+import CommunityPage from './pages/CommunityPage';
+import PostPage from './pages/PostPage';
+import CreateCommunity from './pages/CreateCommunity';
+import CreatePost from './pages/CreatePost';
+import UserProfile from './pages/UserProfile';
 
 function App() {
-  // State to track if user is logged in
-  // isLoggedIn = true if token exists in localStorage
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userId, setUserId] = useState(null);
+  const [username, setUsername] = useState(null);
 
-  // Run this when component loads (only once, because of [])
   useEffect(() => {
-    // Check if token exists in localStorage
     const token = localStorage.getItem('token');
+    const id = localStorage.getItem('userId');
+    const name = localStorage.getItem('username');
 
-    if (token) {
-      // Token exists, user is logged in
+    if (token && id) {
       setIsLoggedIn(true);
-      // Also get userId from localStorage
-      const id = localStorage.getItem('userId');
       setUserId(id);
+      setUsername(name);
     }
-  }, []); // Empty dependency array = run only on mount
+  }, []);
 
-  // Handle logout: delete token and go back to login
+  const handleLoginSuccess = (id, name) => {
+    setUserId(id);
+    setUsername(name);
+    setIsLoggedIn(true);
+  };
+
   const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('userId');
+    localStorage.removeItem('username');
     setIsLoggedIn(false);
     setUserId(null);
+    setUsername(null);
   };
 
-  // If logged in, show Dashboard. Otherwise show Auth (login/signup)
+  if (!isLoggedIn) {
+    return <Auth onLoginSuccess={handleLoginSuccess} />;
+  }
+
   return (
-    <div className="App">
-      {isLoggedIn ? (
-        <Dashboard userId={userId} onLogout={handleLogout} />
-      ) : (
-        <Auth onLoginSuccess={(id) => {
-          setUserId(id);
-          setIsLoggedIn(true);
-        }} />
-      )}
-    </div>
+    <BrowserRouter>
+      <Navbar username={username} onLogout={handleLogout} />
+      <Routes>
+        <Route path="/" element={<Feed userId={userId} />} />
+        <Route path="/communities" element={<Communities userId={userId} />} />
+        <Route path="/c/:slug" element={<CommunityPage userId={userId} username={username} />} />
+        <Route path="/c/:slug/submit" element={<CreatePost userId={userId} />} />
+        <Route path="/post/:id" element={<PostPage userId={userId} username={username} />} />
+        <Route path="/create-community" element={<CreateCommunity userId={userId} />} />
+        <Route path="/u/:username" element={<UserProfile />} />
+        <Route path="*" element={<Navigate to="/" />} />
+      </Routes>
+    </BrowserRouter>
   );
 }
 
